@@ -6,6 +6,7 @@ const io = new Server(8080, {
   },
 });
 
+// adding users into array
 let users = [];
 
 const addUser = (userId, socketId) => {
