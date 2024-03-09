@@ -17,8 +17,8 @@ const removeUser = (socketId) => {
   users = users.filter((user) => user.socketId !== socketId);
 };
 
-const getUser = (senderId) => {
-  return users.find(user => user.userId === senderId)
+const getUser = (userId) => {
+  return users.find(user => user.userId === userId)
 }
 
 io.on('connection', (socket) => {
@@ -71,23 +71,52 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('chatCleared', { userId: userId });
   });
 
-  // when disconnect
-  socket.on('disconnect', () => {
-    console.log('user disconnected');
-    removeUser(socket.id);
-    io.emit('getUsers', users);
-  });
-
-
   // for Instagram clone 
 
   // send a private message and get to user 
-  socket.on('sendMessageInstagram', ({ senderId, receverId, text }) => {
-    const user = getUser(senderId);
-    io.to(user.socketId).emit("getMessageInstagram", {
-      senderId,
-      text
-    })
+  socket.on('sendMessageInstagram', ({ senderId, receiverId, text }) => {
+    const user = getUser(receiverId);
+    if (user && user.socketId) {
+      io.to(user.socketId).emit("getMessageInstagram", {
+        senderId,
+        text
+      });
+    } else {
+      console.log("Пользователь не найден или не имеет сокета");
+    }
+  });
+
+  // delete message with socket
+  socket.on('deleteMessageInstagram', ({ receiverId, messageId }) => {
+    const user = getUser(receiverId);
+    console.log('Сообщение удалено:', messageId);
+    if (user && user.socketId) {
+      io.to(user.socketId).emit("messageDeletedInstagram", {
+        messageId
+      })
+    } else {
+      console.log("Пользователь не найден или не имеет сокета не удалось удалить сообщение");
+    }
   })
 
+  // edit message with socket
+  socket.on('editMessageInstagram', ({ receiverId, messageId, editedMessage }) => {
+    const user = getUser(receiverId);
+    console.log('Сообщение изменено:', messageId);
+    if (user && user.socketId) {
+      io.to(user.socketId).emit("messageEditedInstagram", {
+        messageId,
+        editedMessage
+      })
+    } else {
+      console.log("Пользователь не найден или не имеет сокета не удалось изменить сообщение");
+    }
+  })
+
+  // when disconnect
+  socket.on('disconnect', () => {
+    console.log('user disconnected', socket.id);
+    removeUser(socket.id);
+    io.emit('getUsers', users);
+  });
 });
